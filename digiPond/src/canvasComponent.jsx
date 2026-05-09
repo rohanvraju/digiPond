@@ -1,4 +1,5 @@
 import React, {useRef, useEffect, useState} from 'react';
+import { useFish } from './fishComponent';
 
 const CanvasComponent = () =>{
     const canvasRef = useRef(null);
@@ -6,6 +7,7 @@ const CanvasComponent = () =>{
         width: window.innerWidth,
         height: window.innerHeight
     });
+    const {drawFish} = useFish();
 
     useEffect(() =>{
         const handleResize = () =>{
@@ -28,6 +30,8 @@ const CanvasComponent = () =>{
             ctx.clearRect(0, 0, dimensions.width, dimensions.height);
             ctx.fillStyle = 'blue';
             ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+            drawFish(ctx);
             
             animationId = requestAnimationFrame(animate);
         };
@@ -35,7 +39,7 @@ const CanvasComponent = () =>{
         animationId = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(animationId);
-    }, []);
+    }, [drawFish]);
 
     return <canvas ref={canvasRef} width={dimensions.width} height={dimensions.height} style={{display: 'block'}}/>;
 };
