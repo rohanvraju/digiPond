@@ -12,11 +12,22 @@ export const useFish = () =>{
     }, [fishPosition])
 
     //Animation and movement logic
+    const approach = useCallback(() =>{
+        setFishPosition(prevPos =>({
+            x: prevPos.x < fishDestination.x ? prevPos.x + 1 : prevPos.x - 1,
+            y: prevPos.y < fishDestination.y ? prevPos.y + 1 : prevPos.y - 1
+        }))
+    }, [fishDestination])
     useEffect(() =>{
+        const interval = setInterval(() =>{
+            approach();
+        }, 50) //Call approach() every 50ms
 
-    }, [])
+        return () => clearInterval(interval);
+    }, [approach])
 
-    return {fishPosition, setFishPosition, drawFish}
+
+    return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish}
 }
 
 const FishComponent = () =>{
