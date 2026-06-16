@@ -20,11 +20,17 @@ export const useFish = () =>{
     }, [fishDestination])
     useEffect(() =>{
         const interval = setInterval(() =>{
-            approach();
+            if(fishPosition.x !== fishDestination.x || fishPosition.y !== fishDestination.y){
+                console.log(`Approaching destination: ${fishDestination.x}, ${fishDestination.y}`);
+                approach();
+            } else{
+                console.log(`Reached destination, setting new destination`);
+                setFishDestination({x: 100, y:100})
+            }
         }, 50) //Call approach() every 50ms
 
         return () => clearInterval(interval);
-    }, [approach])
+    }, [fishPosition, fishDestination, approach])
 
 
     return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish}
