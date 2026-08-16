@@ -39,7 +39,7 @@ const CanvasComponent = () =>{
         animationId = requestAnimationFrame(animate);
 
         return () => cancelAnimationFrame(animationId);
-    }, [drawFish]);
+    }, []);
 
     return <canvas ref={canvasRef} width={dimensions.width} height={dimensions.height} style={{display: 'block'}}/>;
 };
