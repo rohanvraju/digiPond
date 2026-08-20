@@ -1,6 +1,13 @@
 import React, {useRef, useEffect, useState, useCallback} from 'react';
 import { debugLog } from './debugSettings';
 
+//Fish segments
+import fishHead from './assets/fishHead_test.png';
+import fishBody from './assets/fishHead_test.png'; //TODO: Replace with actual body and tail model
+import fishTail from './assets/fishHead_test.png';
+
+const detailedLogs = false;
+
 const normalizeAngle = (angle) =>{
     while(angle > Math.PI){
         angle -= Math.PI * 2;
@@ -18,6 +25,15 @@ export const useFish = () =>{
     const [fishPosition, setFishPosition] = useState(positionRef.current);
     const destinationRef = useRef({x: 200, y: 200});
     const directionRef = useRef(0);
+    const [directionRefArr, setDirectionRefArr] = useState([directionRef.current]);
+
+    //Storing loaded fish model images
+    const imagesRef = useRef({
+        head: null,
+        body: null,
+        tail: null
+    });
+    const [imagesLoaded, setImagesLoaded] = useState(false);
 
     const fishDimensions = {
         head: {width: 10, height: 5},
@@ -25,8 +41,65 @@ export const useFish = () =>{
         tail: {width: 8, height: 3}
     };
 
+    //Load fish model images
+    useEffect(() =>{
+        let imagesLoaded = 0;
+        const totalImages = 3;
+
+        const headImage = new Image();
+        headImage.src = fishHead;
+        headImage.onload = () =>{
+            imagesRef.current.head = headImage;
+            imagesLoaded++;
+            debugLog(`Head image loaded`);
+            if(imagesLoaded === totalImages){
+                setImagesLoaded(true);
+                debugLog(`All model images loaded`);
+            }
+        };
+        headImage.onerror = () =>{
+            debugLog(`ERROR: Head image failed to load: ${fishHead}`);
+        }
+
+        const bodyImage = new Image();
+        bodyImage.src = fishBody;
+        bodyImage.onload = () =>{
+            imagesRef.current.body = bodyImage;
+            imagesLoaded++;
+            debugLog(`Body image loaded`);
+            if(imagesLoaded === totalImages){
+                setImagesLoaded(true);
+                debugLog(`All model images loaded`);
+            }
+        };
+        bodyImage.onerror = () =>{
+            debugLog(`ERROR: Body image failed to load: ${fishBody}`);
+        }
+
+        const tailImage = new Image();
+        tailImage.src = fishTail;
+        tailImage.onload = () =>{
+            imagesRef.current.tail = tailImage;
+            imagesLoaded++;
+            debugLog(`Tail image loaded`);
+            if(imagesLoaded === totalImages){
+                setImagesLoaded(true);
+                debugLog(`All model images loaded`);
+            }
+        };
+        tailImage.onerror = () =>{
+            debugLog(`ERROR: Tail image failed to load: ${fishTail}`);
+        }
+
+    }, []);
+
     //Reworking of drawFish for direction change
     const drawFish = useCallback((ctx) =>{
+        if(!imagesLoaded){
+            debugLog(`Waiting on model images to load`);
+            return;
+        }
+
         const pos = positionRef.current;
         const angle = directionRef.current;
 
@@ -35,29 +108,40 @@ export const useFish = () =>{
         ctx.rotate(angle);
 
         //Head
-        ctx.fillStyle = 'red';
-        ctx.fillRect(0, -fishDimensions.head.height/2, fishDimensions.head.width, fishDimensions.head.height);
+        if(imagesRef.current.head){
+            ctx.drawImage(
+                imagesRef.current.head,
+                0,
+                -fishDimensions.head.height/2,
+                fishDimensions.head.width,
+                fishDimensions.head.height
+            );
+        }
 
         //Body
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(
-            -fishDimensions.body.width,
-            -fishDimensions.body.height/2,
-            fishDimensions.body.width,
-            fishDimensions.body.height
-        );
+        if(imagesRef.current.body){
+            ctx.drawImage(
+                imagesRef.current.body,
+                -fishDimensions.body.width,
+                -fishDimensions.body.height/2,
+                fishDimensions.body.width,
+                fishDimensions.body.height
+            );
+        }
 
         //Tail
-        ctx.fillStyle = 'green';
-        ctx.fillRect(
-            -(fishDimensions.body.width + fishDimensions.tail.width),
-            -fishDimensions.tail.height/2,
-            fishDimensions.tail.width,
-            fishDimensions.tail.height
-        );
+        if(imagesRef.current.tail){
+            ctx.drawImage(
+                imagesRef.current.tail,
+                -(fishDimensions.body.width + fishDimensions.tail.width),
+                -fishDimensions.tail.height/2,
+                fishDimensions.tail.width,
+                fishDimensions.tail.height
+            );
+        }
 
         ctx.restore();
-    }, []);
+    }, [imagesLoaded]);
 
     //Animation logic incorporating directional movement
     useEffect(() =>{
@@ -68,14 +152,13 @@ export const useFish = () =>{
             const angle = Math.atan2(destY, destX);
 
             //turns towards destination
-            debugLog(`Setting turn angle`);
             const turnAmount = 0.12;
             const delta = normalizeAngle(angle - directionRef.current);
             directionRef.current += delta * turnAmount;
-            debugLog(`Turn angle: ${delta}`);
+            if(detailedLogs){debugLog(`Turn angle: ${directionRef.current}`);}
 
             //move in direction of destination
-            debugLog(`Moving towards destination`);
+            if(detailedLogs){debugLog(`Moving towards destination`);}
             const speed = 1.4;
             const nextX = pos.x + Math.cos(directionRef.current) * speed;
             const nextY = pos.y + Math.sin(directionRef.current) * speed;
@@ -86,76 +169,15 @@ export const useFish = () =>{
             if(Math.hypot(fishDestination.x - nextX, fishDestination.y - nextY) < 5){
                 debugLog(`Reached destination, setting new destination`);
                 setFishDestination({
-                    x: Math.floor(Math.random() * 200), 
-                    y: Math.floor(Math.random() * 200)
+                    x: Math.floor(Math.random() * window.innerWidth), 
+                    y: Math.floor(Math.random() * window.innerHeight)
                 });
-                debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`);
+                if(detailedLogs){debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`);}
             }
         }, 30);
 
         return () => clearInterval(interval);
-    }), [fishDestination];
-
-
-    /*const drawFish = useCallback((ctx) =>{
-        const pos = positionRef.current;
-        //Head
-        ctx.fillStyle = 'red';
-        ctx.fillRect(pos.x, pos.y, fishDimensions.head.width, fishDimensions.head.height);
-
-        //Body
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(
-            pos.x + fishDimensions.head.width, 
-            pos.y + 0.5, 
-            fishDimensions.body.width, 
-            fishDimensions.body.height);
-
-        //Tail
-        ctx.fillStyle = 'green';
-        ctx.fillRect(
-            pos.x + fishDimensions.head.width + fishDimensions.body.width, 
-            pos.y + 1, 
-            fishDimensions.tail.width, 
-            fishDimensions.tail.height)
-    }, []);*/
-
-    /*
-    //Animation and movement logic
-    const approach = useCallback(() =>{
-        const newPosition = {
-            x: positionRef.current.x < fishDestination.x ? positionRef.current.x + 1 : positionRef.current.x - 1,
-            y: positionRef.current.y < fishDestination.y ? positionRef.current.y + 1 : positionRef.current.y - 1
-        }
-        positionRef.current = newPosition;
-        setFishPosition(newPosition);
-
-        // setFishPosition(prevPos =>({
-        //     x: prevPos.x < fishDestination.x ? prevPos.x + 1 : prevPos.x - 1,
-        //     y: prevPos.y < fishDestination.y ? prevPos.y + 1 : prevPos.y - 1
-        // }))
-    }, [fishDestination])
-    useEffect(() =>{
-        const interval = setInterval(() =>{
-            if(positionRef.current.x !== destinationRef.current.x || positionRef.current.y !== destinationRef.current.y){
-                console.log(`Approaching destination: ${destinationRef.current.x}, ${destinationRef.current.y}`);
-                //approach();
-                const newPosition = {
-                    x: positionRef.current.x < destinationRef.current.x ? positionRef.current.x + 1 : positionRef.current.x - 1,
-                    y: positionRef.current.y < destinationRef.current.y ? positionRef.current.y + 1 : positionRef.current.y - 1
-                }
-                positionRef.current = newPosition;
-                setFishPosition(newPosition);
-            } else{
-                console.log(`Reached destination, setting new destination`);
-                destinationRef.current = {x: Math.floor(Math.random() * 200), y: Math.floor(Math.random() * 200)};
-                setFishDestination(destinationRef.current);
-            }
-        }, 50) //Call approach() every 50ms
-        
-        return () => clearInterval(interval);
-    }, [])
-    */
+    }, [fishDestination]);
 
 
     return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish}
