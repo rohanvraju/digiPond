@@ -8,6 +8,7 @@ import fishTail from './assets/fishHead_test.png';
 
 const detailedLogs = false;
 
+//Helper methods for angle and position calculations
 const normalizeAngle = (angle) =>{
     while(angle > Math.PI){
         angle -= Math.PI * 2;
@@ -17,6 +18,21 @@ const normalizeAngle = (angle) =>{
     }
 
     return angle;
+}
+const getPointBehind = (position, angle, distance) =>({
+    x: position.x - Math.cos(angle) * distance,
+    y: position.y - Math.sin(angle) * distance
+});
+const followSegment = (segment, target, turnAmount, moveAmount) =>{
+    const destX = target.x - segment.position.x;
+    const destY = target.y - segment.position.y;
+
+    const targetAngle = Math.atan2(destY, destX);
+    const angleDiff = normalizeAngle(targetAngle - segment.angle);
+    segment.angle += angleDiff * turnAmount;
+
+    segment.position.x += Math.cos(segment.angle) * moveAmount;
+    segment.position.y += Math.sin(segment.angle) * moveAmount;
 }
 
 export const useFish = () =>{
@@ -40,6 +56,16 @@ export const useFish = () =>{
         body: {width: 12, height: 4},
         tail: {width: 8, height: 3}
     };
+
+    //Fish segment refs
+    const bodyRef = useRef({
+        position: {x: positionRef.current.x - fishDimensions.head.width, y: 100},
+        angle: 0
+    });
+    const tailRef = useRef({
+        position: {x: positionRef.current.x - (fishDimensions.head.width - fishDimensions.body.width), y: 100},
+        angle: 0
+    });
 
     //Load fish model images
     useEffect(() =>{
@@ -94,12 +120,50 @@ export const useFish = () =>{
     }, []);
 
     //Reworking of drawFish for direction change
+    const drawSegment = (ctx, image, segment, dimensions) =>{
+        ctx.save();
+        ctx.translate(segment.position.x, segment.position.y);
+        ctx.rotate(segment.angle);
+
+        ctx.drawImage(
+            image,
+            -dimensions.width / 2,
+            -dimensions.height / 2,
+            dimensions.width,
+            dimensions.height
+        );
+
+        ctx.restore();
+    }
     const drawFish = useCallback((ctx) =>{
         if(!imagesLoaded){
             debugLog(`Waiting on model images to load`);
             return;
         }
 
+        drawSegment(
+            ctx,
+            imagesRef.current.head,
+            {
+                position: positionRef.current,
+                angle: directionRef.current
+            },
+            fishDimensions.head
+        );
+        drawSegment(
+            ctx,
+            imagesRef.current.body,
+            bodyRef.current,
+            fishDimensions.body
+        );
+        drawSegment(
+            ctx,
+            imagesRef.current.tail,
+            tailRef.current,
+            fishDimensions.tail
+        )
+
+        /*
         const pos = positionRef.current;
         const angle = directionRef.current;
 
@@ -141,6 +205,7 @@ export const useFish = () =>{
         }
 
         ctx.restore();
+        */
     }, [imagesLoaded]);
 
     //Animation logic incorporating directional movement
@@ -174,6 +239,21 @@ export const useFish = () =>{
                 });
                 if(detailedLogs){debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`);}
             }
+
+            //Body and tail positioning relative to head
+            const bodyTarget = getPointBehind(
+                positionRef.current, //head position
+                directionRef.current,
+                (fishDimensions.head.width / 2) + (fishDimensions.body.width / 2)
+            );
+            followSegment(bodyRef.current, bodyTarget, 0.12, 1.47);
+
+            const tailTarget = getPointBehind(
+                bodyRef.current.position,
+                bodyRef.current.angle,
+                (fishDimensions.body.width / 2) + (fishDimensions.tail.width / 2)
+            )
+            followSegment(tailRef.current, tailTarget, 0.12, 1.5)
         }, 30);
 
         return () => clearInterval(interval);
