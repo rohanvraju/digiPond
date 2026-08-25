@@ -31,8 +31,10 @@ const followSegment = (segment, target, turnAmount, moveAmount) =>{
     const angleDiff = normalizeAngle(targetAngle - segment.angle);
     segment.angle += angleDiff * turnAmount;
 
-    segment.position.x += Math.cos(segment.angle) * moveAmount;
-    segment.position.y += Math.sin(segment.angle) * moveAmount;
+    //segment.position.x += Math.cos(segment.angle) * moveAmount;
+    //segment.position.y += Math.sin(segment.angle) * moveAmount;
+    segment.position.x = target.x;
+    segment.position.y = target.y;
 }
 
 export const useFish = () =>{
@@ -58,12 +60,22 @@ export const useFish = () =>{
     };
 
     //Fish segment refs
+    const bodyStartPoint = getPointBehind(
+        positionRef.current,
+        directionRef.current,
+       ((fishDimensions.head.width / 2) + (fishDimensions.body.width / 2))
+    )
     const bodyRef = useRef({
-        position: {x: positionRef.current.x - fishDimensions.head.width, y: 100},
+        position: bodyStartPoint,
         angle: 0
     });
+    const tailStartPoint = getPointBehind(
+        bodyStartPoint,
+        0,
+       ((fishDimensions.body.width / 2) + (fishDimensions.tail.width / 2))
+    )
     const tailRef = useRef({
-        position: {x: positionRef.current.x - (fishDimensions.head.width - fishDimensions.body.width), y: 100},
+        position: tailStartPoint,
         angle: 0
     });
 
@@ -246,7 +258,7 @@ export const useFish = () =>{
                 directionRef.current,
                 (fishDimensions.head.width / 2) + (fishDimensions.body.width / 2)
             );
-            followSegment(bodyRef.current, bodyTarget, 0.12, 1.47);
+            followSegment(bodyRef.current, bodyTarget, 0.3, 1.47);
 
             const tailTarget = getPointBehind(
                 bodyRef.current.position,
