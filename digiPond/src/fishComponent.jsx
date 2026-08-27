@@ -43,7 +43,7 @@ export const useFish = () =>{
     const [fishPosition, setFishPosition] = useState(positionRef.current);
     const destinationRef = useRef({x: 200, y: 200});
     const directionRef = useRef(0);
-    const [directionRefArr, setDirectionRefArr] = useState([directionRef.current]);
+    const wiggleSpeed = useRef(0);
 
     //Storing loaded fish model images
     const imagesRef = useRef({
@@ -231,7 +231,12 @@ export const useFish = () =>{
             //turns towards destination
             const turnAmount = 0.12;
             const delta = normalizeAngle(angle - directionRef.current);
-            directionRef.current += delta * turnAmount;
+            const wiggleAngle = 0.05;
+            directionRef.current += (delta * turnAmount) + (wiggleAngle * Math.sin(wiggleSpeed.current));
+            /*
+            Wiggle math: sin produces value b/w -1 and 1. wiggleAngle scales that range.
+            So directionRef is altered by -wiggleAngle to wiggleAngle
+            */
             if(detailedLogs){debugLog(`Turn angle: ${directionRef.current}`);}
 
             //move in direction of destination
@@ -270,6 +275,14 @@ export const useFish = () =>{
 
         return () => clearInterval(interval);
     }, [fishDestination]);
+
+    useEffect(() =>{
+        const interval = setInterval(() =>{
+            wiggleSpeed.current += 0.15;
+        }, 30);
+
+        return () => clearInterval(interval);
+    }, []);
 
 
     return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish}
