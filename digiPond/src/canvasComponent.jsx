@@ -1,5 +1,5 @@
 import React, {useRef, useEffect, useState} from 'react';
-import { useFish } from './fishComponent';
+import { useFish, updateFish } from './fishComponent';
 
 const CanvasComponent = () =>{
     const canvasRef = useRef(null);
@@ -7,7 +7,7 @@ const CanvasComponent = () =>{
         width: window.innerWidth,
         height: window.innerHeight
     });
-    const {drawFish} = useFish();
+    const {fishRef, drawFish} = useFish();
 
     useEffect(() =>{
         const handleResize = () =>{
@@ -26,7 +26,24 @@ const CanvasComponent = () =>{
         const ctx = canvas.getContext('2d');
         let animationId;
 
-        const animate = () =>{
+        let previousTime = performance.now();
+        const animate = (time) =>{
+            const deltaTime = Math.min((time - previousTime) / 16.67, 3);
+            previousTime = time;
+
+            fishRef.current.forEach((fish) =>{
+                updateFish(fish, deltaTime, dimensions.width, dimensions.height);
+            });
+
+            ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+            drawFish(ctx);
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        /*const animate = () =>{
             ctx.clearRect(0, 0, dimensions.width, dimensions.height);
             ctx.fillStyle = 'blue';
             ctx.fillRect(0, 0, dimensions.width, dimensions.height);
@@ -34,7 +51,7 @@ const CanvasComponent = () =>{
             drawFish(ctx);
             
             animationId = requestAnimationFrame(animate);
-        };
+        };*/
 
         animationId = requestAnimationFrame(animate);
 

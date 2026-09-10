@@ -37,6 +37,78 @@ const followSegment = (segment, target, turnAmount, moveAmount) =>{
     segment.position.y = target.y;
 }
 
+
+//Creating group of fish
+const createFish = () =>({
+    position: {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+    },
+    destination: {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+    },
+    direction: Math.random() * (Math.PI * 2),
+    wigglePhase: Math.random() * (Math.PI * 2),
+    body: {position: {x: 0, y: 0}, angle: 0},
+    tail: {position: {x: 0, y: 0}, angle: 0}
+});
+
+const fishDimensions = {
+        head: {width: 10, height: 5},
+        body: {width: 12, height: 4},
+        tail: {width: 8, height: 3}
+    };
+
+export const updateFish = (fish, deltaTime, width, height) => {
+    const destX = fish.destination.x - fish.position.x;
+    const destY = fish.destination.y - fish.position.y;
+    const angle = Math.atan2(destY, destX);
+
+    /*
+    Wiggle math: sin produces value b/w -1 and 1. wiggleAngle scales that range.
+    So directionRef is altered by -wiggleAngle to wiggleAngle
+    */
+    //turns towards destination
+    const turnAmount = 0.12;
+    const delta = normalizeAngle(angle - fish.direction);
+    const wiggleAngle = 0.05;
+    fish.direction += (delta * turnAmount) + (wiggleAngle * Math.sin(fish.wigglePhase));
+    fish.wigglePhase += 0.15 * deltaTime;
+    if (detailedLogs) { debugLog(`Turn angle: ${directionRef.current}`); }
+
+    //move in direction of destination
+    if (detailedLogs) { debugLog(`Moving towards destination`); }
+    const speed = 1.4 * deltaTime;
+    fish.position.x += Math.cos(fish.direction) * speed;
+    fish.position.y += Math.sin(fish.direction) * speed;
+
+    //set new destination once target destination reached
+    if (Math.hypot(destX, destY) < 5) {
+        debugLog(`Reached destination, setting new destination`);
+        fish.destination = {
+            x: Math.floor(Math.random() * width),
+            y: Math.floor(Math.random() * height)
+        };
+        if (detailedLogs) { debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`); }
+    }
+
+    //Body and tail positioning relative to head
+    const bodyTarget = getPointBehind(
+        fish.position, //head position
+        fish.direction,
+        (fishDimensions.head.width / 2) + (fishDimensions.body.width / 2)
+    );
+    followSegment(fish.body, bodyTarget, 0.3, 1.47);
+
+    const tailTarget = getPointBehind(
+        fish.body.position,
+        fish.body.angle,
+        (fishDimensions.body.width / 2) + (fishDimensions.tail.width / 2)
+    )
+    followSegment(fish.tail, tailTarget, 0.12, 1.5)
+}
+
 export const useFish = () =>{
     const [fishDestination, setFishDestination] = useState({x: 200, y: 200});
     const positionRef = useRef({x: 100, y: 100}); //To keep track of fishPos through updates, resolves jittering issue
@@ -53,11 +125,9 @@ export const useFish = () =>{
     });
     const [imagesLoaded, setImagesLoaded] = useState(false);
 
-    const fishDimensions = {
-        head: {width: 10, height: 5},
-        body: {width: 12, height: 4},
-        tail: {width: 8, height: 3}
-    };
+    const fishRef = useRef(
+        Array.from({ length: 10 }, createFish)
+    );
 
     //Fish segment refs
     const bodyStartPoint = getPointBehind(
@@ -153,7 +223,31 @@ export const useFish = () =>{
             return;
         }
 
-        drawSegment(
+        for(const fish of fishRef.current){
+            drawSegment(
+                ctx,
+                imagesRef.current.head,
+                {
+                    position: fish.position,
+                    angle: fish.direction
+                },
+                fishDimensions.head
+            );
+            drawSegment(
+                ctx,
+                imagesRef.current.body,
+                fish.body,
+                fishDimensions.body
+            );
+            drawSegment(
+                ctx,
+                imagesRef.current.tail,
+                fish.tail,
+                fishDimensions.tail
+            );
+        }
+
+        /*drawSegment(
             ctx,
             imagesRef.current.head,
             {
@@ -173,108 +267,64 @@ export const useFish = () =>{
             imagesRef.current.tail,
             tailRef.current,
             fishDimensions.tail
-        )
-
-        /*
-        const pos = positionRef.current;
-        const angle = directionRef.current;
-
-        ctx.save();
-        ctx.translate(pos.x, pos.y);
-        ctx.rotate(angle);
-
-        //Head
-        if(imagesRef.current.head){
-            ctx.drawImage(
-                imagesRef.current.head,
-                0,
-                -fishDimensions.head.height/2,
-                fishDimensions.head.width,
-                fishDimensions.head.height
-            );
-        }
-
-        //Body
-        if(imagesRef.current.body){
-            ctx.drawImage(
-                imagesRef.current.body,
-                -fishDimensions.body.width,
-                -fishDimensions.body.height/2,
-                fishDimensions.body.width,
-                fishDimensions.body.height
-            );
-        }
-
-        //Tail
-        if(imagesRef.current.tail){
-            ctx.drawImage(
-                imagesRef.current.tail,
-                -(fishDimensions.body.width + fishDimensions.tail.width),
-                -fishDimensions.tail.height/2,
-                fishDimensions.tail.width,
-                fishDimensions.tail.height
-            );
-        }
-
-        ctx.restore();
-        */
+        )*/
     }, [imagesLoaded]);
 
     //Animation logic incorporating directional movement
-    useEffect(() =>{
-        const interval = setInterval(() =>{
-            const pos = positionRef.current;
-            const destX = fishDestination.x - pos.x;
-            const destY = fishDestination.y - pos.y;
-            const angle = Math.atan2(destY, destX);
+    // useEffect(() =>{
+    //     const interval = setInterval(() =>{
+    //         const pos = positionRef.current;
+    //         const destX = fishDestination.x - pos.x;
+    //         const destY = fishDestination.y - pos.y;
+    //         const angle = Math.atan2(destY, destX);
 
-            //turns towards destination
-            const turnAmount = 0.12;
-            const delta = normalizeAngle(angle - directionRef.current);
-            const wiggleAngle = 0.05;
-            directionRef.current += (delta * turnAmount) + (wiggleAngle * Math.sin(wiggleSpeed.current));
-            /*
-            Wiggle math: sin produces value b/w -1 and 1. wiggleAngle scales that range.
-            So directionRef is altered by -wiggleAngle to wiggleAngle
-            */
-            if(detailedLogs){debugLog(`Turn angle: ${directionRef.current}`);}
+    //         //turns towards destination
+    //         const turnAmount = 0.12;
+    //         const delta = normalizeAngle(angle - directionRef.current);
+    //         const wiggleAngle = 0.05;
+    //         directionRef.current += (delta * turnAmount) + (wiggleAngle * Math.sin(wiggleSpeed.current));
+    //         /*
+    //         Wiggle math: sin produces value b/w -1 and 1. wiggleAngle scales that range.
+    //         So directionRef is altered by -wiggleAngle to wiggleAngle
+    //         */
+    //         if(detailedLogs){debugLog(`Turn angle: ${directionRef.current}`);}
 
-            //move in direction of destination
-            if(detailedLogs){debugLog(`Moving towards destination`);}
-            const speed = 1.4;
-            const nextX = pos.x + Math.cos(directionRef.current) * speed;
-            const nextY = pos.y + Math.sin(directionRef.current) * speed;
+    //         //move in direction of destination
+    //         if(detailedLogs){debugLog(`Moving towards destination`);}
+    //         const speed = 1.4;
+    //         const nextX = pos.x + Math.cos(directionRef.current) * speed;
+    //         const nextY = pos.y + Math.sin(directionRef.current) * speed;
 
-            positionRef.current = {x: nextX, y: nextY};
+    //         positionRef.current = {x: nextX, y: nextY};
 
-            //set new destination once target destination reached
-            if(Math.hypot(fishDestination.x - nextX, fishDestination.y - nextY) < 5){
-                debugLog(`Reached destination, setting new destination`);
-                setFishDestination({
-                    x: Math.floor(Math.random() * window.innerWidth), 
-                    y: Math.floor(Math.random() * window.innerHeight)
-                });
-                if(detailedLogs){debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`);}
-            }
+    //         //set new destination once target destination reached
+    //         if(Math.hypot(fishDestination.x - nextX, fishDestination.y - nextY) < 5){
+    //             debugLog(`Reached destination, setting new destination`);
+    //             setFishDestination({
+    //                 x: Math.floor(Math.random() * window.innerWidth), 
+    //                 y: Math.floor(Math.random() * window.innerHeight)
+    //             });
+    //             if(detailedLogs){debugLog(`Destination set: ${fishDestination.x}, ${fishDestination.y}`);}
+    //         }
 
-            //Body and tail positioning relative to head
-            const bodyTarget = getPointBehind(
-                positionRef.current, //head position
-                directionRef.current,
-                (fishDimensions.head.width / 2) + (fishDimensions.body.width / 2)
-            );
-            followSegment(bodyRef.current, bodyTarget, 0.3, 1.47);
+    //         //Body and tail positioning relative to head
+    //         const bodyTarget = getPointBehind(
+    //             positionRef.current, //head position
+    //             directionRef.current,
+    //             (fishDimensions.head.width / 2) + (fishDimensions.body.width / 2)
+    //         );
+    //         followSegment(bodyRef.current, bodyTarget, 0.3, 1.47);
 
-            const tailTarget = getPointBehind(
-                bodyRef.current.position,
-                bodyRef.current.angle,
-                (fishDimensions.body.width / 2) + (fishDimensions.tail.width / 2)
-            )
-            followSegment(tailRef.current, tailTarget, 0.12, 1.5)
-        }, 30);
+    //         const tailTarget = getPointBehind(
+    //             bodyRef.current.position,
+    //             bodyRef.current.angle,
+    //             (fishDimensions.body.width / 2) + (fishDimensions.tail.width / 2)
+    //         )
+    //         followSegment(tailRef.current, tailTarget, 0.12, 1.5)
+    //     }, 30);
 
-        return () => clearInterval(interval);
-    }, [fishDestination]);
+    //     return () => clearInterval(interval);
+    // }, [fishDestination]);
 
     useEffect(() =>{
         const interval = setInterval(() =>{
@@ -285,7 +335,7 @@ export const useFish = () =>{
     }, []);
 
 
-    return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish}
+    return {fishPosition, setFishPosition, fishDestination, setFishDestination, drawFish, fishRef}
 }
 
 const FishComponent = () =>{
