@@ -4,6 +4,9 @@ import { useFish, updateFish } from './fishComponent';
 const drawGrid = (ctx, canvasWidth, canvasHeight, tileSize) =>{
     const tileColors = ['#00A2E8', '#99D9EA'];
     const vertexColors = ['#000000', '#ffffff']
+    const vertexSize = 5;
+    let vertexPatternCounter = 0;
+    let vertexPatternSet = true; //true = w b b w, false = b w w b
     for(let y = 0; y < canvasHeight; y += tileSize){
         for(let x = 0; x < canvasWidth; x += tileSize){
             const tileX = x / tileSize;
@@ -12,10 +15,45 @@ const drawGrid = (ctx, canvasWidth, canvasHeight, tileSize) =>{
             ctx.fillStyle = tileColors[(tileX + tileY) % 2];
             ctx.fillRect(x, y, tileSize, tileSize);
 
-            const vertexOriginX = ((tileX + tileY) % 2 == 0) ? (x + tileSize) - 10 : x;
-            const vertexOriginY = ((tileX + tileY) % 2 == 0) ? (y + tileSize) - 10 : (y + tileSize) - 10;
-            ctx.fillStyle = vertexColors[0];
-            ctx.fillRect(vertexOriginX, vertexOriginY, (10), (10));
+            // const vertexOriginX = ((tileX + tileY) % 2 == 0) ? (x + tileSize) - 10 : x;
+            // const vertexOriginY = ((tileX + tileY) % 2 == 0) ? (y + tileSize) - 10 : (y + tileSize) - 10;
+            // ctx.fillStyle = vertexColors[0];
+            // ctx.fillRect(vertexOriginX, vertexOriginY, (10), (10));
+
+            //Vertex pattern switches ever 4 vertices
+            if(vertexPatternCounter == 0){
+                ctx.fillStyle = vertexColors[Number(vertexPatternSet)];
+            }
+            if(vertexPatternCounter == 1 || vertexPatternCounter == 2){
+                ctx.fillStyle = vertexColors[Number(!vertexPatternSet)];
+            }
+            if(vertexPatternCounter == 4){
+                ctx.fillStyle = vertexColors[Number(vertexPatternSet)];
+                vertexPatternSet = !vertexPatternSet;
+                vertexPatternCounter = -1;
+            }
+            vertexPatternCounter++;
+            
+
+            let onLeftBorder = (x == 0);
+            let onRightBorder = (x == canvasWidth);
+            let onTopBorder = (y == 0);
+            let onBottomBorder = (y == canvasHeight)
+
+           ctx.fillRect((x + tileSize - vertexSize), (y + tileSize - vertexSize), vertexSize, vertexSize);
+            
+
+            // if(!onLeftBorder){
+            //     if(!onTopBorder){ ctx.fillRect(x, y, vertexSize, vertexSize); } //Top left
+            //     if(!onBottomBorder){ ctx.fillRect(x, (y + tileSize - vertexSize), vertexSize, vertexSize); } //Bottom left
+            // }
+            // if(!onRightBorder){
+            //     if(!onTopBorder){ ctx.fillRect((x + tileSize - vertexSize), y, vertexSize, vertexSize); } //Top right
+            //     if(!onBottomBorder){ ctx.fillRect((x + tileSize - vertexSize), (y + tileSize - vertexSize), vertexSize, vertexSize);} //Bottom right
+            // }
+            
+
+
         }
     }
 }
