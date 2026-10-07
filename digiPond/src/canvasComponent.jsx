@@ -20,6 +20,8 @@ const drawGrid = (ctx, canvasWidth, canvasHeight, tileSize) =>{
             // ctx.fillStyle = vertexColors[0];
             // ctx.fillRect(vertexOriginX, vertexOriginY, (10), (10));
 
+            /*
+
             //Vertex pattern switches ever 4 vertices
             if(vertexPatternCounter == 0){
                 ctx.fillStyle = vertexColors[Number(vertexPatternSet)];
@@ -41,6 +43,8 @@ const drawGrid = (ctx, canvasWidth, canvasHeight, tileSize) =>{
             let onBottomBorder = (y == canvasHeight)
 
            ctx.fillRect((x + tileSize - vertexSize), (y + tileSize - vertexSize), vertexSize, vertexSize);
+
+           */
             
 
             // if(!onLeftBorder){
@@ -56,6 +60,29 @@ const drawGrid = (ctx, canvasWidth, canvasHeight, tileSize) =>{
 
         }
     }
+
+    //Marking borders for optical illusion
+    //TODO: Revisit to try and implement within initial grid drawing loop
+    for(let y = 0; y < canvasHeight; y += tileSize){
+        for( let x = 0; x < canvasWidth; x += tileSize){
+            //Vertex pattern switches ever 4 vertices
+            if(vertexPatternCounter == 0){
+                ctx.fillStyle = vertexColors[Number(vertexPatternSet)];
+            }
+            if(vertexPatternCounter == 1 || vertexPatternCounter == 2){
+                ctx.fillStyle = vertexColors[Number(!vertexPatternSet)];
+            }
+            if(vertexPatternCounter == 3){
+                ctx.fillStyle = vertexColors[Number(vertexPatternSet)];
+                vertexPatternSet = !vertexPatternSet;
+                vertexPatternCounter = -1;
+            }
+            vertexPatternCounter++;
+
+            ctx.fillRect((x + tileSize - (vertexSize/2)), (y + tileSize - (vertexSize/2)), vertexSize, vertexSize);
+        }
+    }
+
 }
 
 const CanvasComponent = () =>{
