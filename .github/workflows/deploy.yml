@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: lts/*
           cache: 'npm'
-          cache-dependency-path: 'digiPond/digiPond/package-lock.json'
+          cache-dependency-path: 'digiPond/package-lock.json'
           
       - name: Install dependencies
         working-directory: ./digiPond
