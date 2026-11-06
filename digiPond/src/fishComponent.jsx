@@ -55,9 +55,9 @@ const createFish = () =>({
 });
 
 const fishDimensions = {
-        head: {width: 10, height: 5},
-        body: {width: 12, height: 4},
-        tail: {width: 8, height: 3}
+        head: {width: 15, height: 7},
+        body: {width: 18, height: 6},
+        tail: {width: 12, height: 5}
     };
 
 export const updateFish = (fish, deltaTime, width, height) => {
